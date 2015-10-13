@@ -1,5 +1,6 @@
 ### What is this for?
 Postprocessing CSS file to create high-contrast style addon. For accessibility.
+Not Nearly Finished. Sorry. 
 
 ### Usage
 - Install it: `npm install`
