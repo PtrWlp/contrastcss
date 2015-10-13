@@ -1,12 +1,16 @@
 {
   "name": "contrastcss",
-  "description": "Add High-contrast versions to a CSS file",
+  "description": "generate High-contrast versions of a CSS file",
   "keywords": [
     "css",
     "accessibility",
     "postprocessor"
   ],
   "license": "MIT",
+   "repository": {
+    "type": "git",
+    "url": "https://github.com/PtrWlp/contrastcss.git"
+  },
   "author": {
     "name": "Peter Welp"
   },
