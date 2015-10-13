@@ -1,0 +1,19 @@
+{
+  "name": "contrastcss",
+  "description": "Add High-contrast versions to a CSS file",
+  "keywords": [
+    "css",
+    "accessibility",
+    "postprocessor"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Peter Welp"
+  },
+  "version": "0.0.1",
+  "main": "contrastcss",
+  "dependencies": {
+    "css-parse": "*",
+    "css-stringify": "*"
+  }
+}
