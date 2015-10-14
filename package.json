@@ -7,7 +7,7 @@
     "postprocessor"
   ],
   "license": "MIT",
-   "repository": {
+  "repository": {
     "type": "git",
     "url": "https://github.com/PtrWlp/contrastcss.git"
   },
