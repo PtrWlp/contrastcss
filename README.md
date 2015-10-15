@@ -13,7 +13,7 @@ Todo:
 
 ### Notes
 Configure your colors with a hightcontrast replacement. 
-'''js
+```js
     contrastcss: {
         blackonwhite: {
             options: {
@@ -28,6 +28,6 @@ Configure your colors with a hightcontrast replacement.
                 'target/css/myproject-bow.css': ['target/css/myproject.css'],
             },
         }
- '''
+```
 
   
