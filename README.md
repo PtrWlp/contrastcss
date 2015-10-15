@@ -13,7 +13,7 @@ Todo:
 
 ### Notes
 Configure your colors with a hightcontrast replacement. 
-```js
+```
     contrastcss: {
         blackonwhite: {
             options: {
