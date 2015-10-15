@@ -2,21 +2,42 @@ var parseCss = require('css-parse');
 var stringifyCss = require('css-stringify');
 
 module.exports = function (css, options) {
-    var parsed, rules;
 
-    parsed = parseCss(css);
-    //colorRules = [];
-    rules = parsed.stylesheet.rules;
-console.log(options);
-console.log('-------------');
+var LogRuleNr = 1;
+var logRequired = false;
+function logThis(label, log, always) {
+    if (logRequired || always) {
+        console.log(label + ": ", log);
+    }
+}
 
-var LogRuleNr = 0;
-var logThis = false;
+    var parsed = parseCss(css);
+    var rules = parsed.stylesheet.rules;
+
+logThis('Selected rule for logging', LogRuleNr, true);
+logThis('options', options, true);
+logThis('----------', '', true);
+logThis('parsed', parsed, true);
+logThis('----------', '', true);
+
 
     var bodyprefix = options.bodyprefix;
     var colorsToTopColor = options.colorsToTopColor[0];
     var colorsToBottomColor = options.colorsToBottomColor[0];
 
+    var unmatchedColors = [];
+
+    function clone(source) {
+        var destination = {}
+        for (var property in source) {
+            if (typeof source[property] === "object" && source[property] !== null && destination[property]) {
+                destination[property] = clone(source[property]);  // recursive
+            } else {
+                destination[property] = source[property];
+            }
+        }
+        return destination;
+    }
 
     function compareColors(left, right) {
 
@@ -106,55 +127,41 @@ var logThis = false;
     function leaveOnlyColorDeclarations(declarations) {
         var copyDeclarations = [], declaration;
         for (var i = 0; i < declarations.length; ++i) {
-            declaration = declarations[i];
-if (logThis) {
-    console.log('Declaration: ', declaration);
-}
+            declaration = clone(declarations[i]);
+
             if (['color', 'background', 'font-color', 'border-color'].indexOf(declaration.property) !== -1) {
                 if (isTopColor(declaration.value)) {
-if (logThis) {
-    console.log('topcolor: ', declaration.value);
-}
                     declaration.value = options.topColor;
                     copyDeclarations.push(declaration);
-
-                } else if (isTopColor(declaration.value)) {
-if (logThis) {
-    console.log('bottomcolor: ', declaration.value);
-}
+                } else if (isBottomColor(declaration.value)) {
                     declaration.value = options.bottomColor;
                     copyDeclarations.push(declaration);
                 }
             }
         }
-if (logThis) {
-    console.log('Altered Declaration: ', copyDeclarations);
-}
+logThis('Altered Declaration', copyDeclarations);
         return copyDeclarations;
     }
 
     function leaveOnlyColorRules(rules) {
-        var copyRules = [];
-        var copyRule = {};
+        var copyRules = [], rule;
 
         for (var i = 0; i < rules.length; ++i) {
-logThis = (i===LogRuleNr);
-if (logThis) {
-    console.log('Rule selectors: ', rules[i].selectors);
-}
-            if (rules[i].type === 'media') {
-                copyRule = {};
-                copyRule.type = 'media';
-                copyRule.media = rules[i].media;
-                copyRule.rules = leaveOnlyColorRules(rules[i].rules); //recursive
-            } else {
-                copyRule = {};
-                copyRule.type = 'rule';
-                copyRule.selectors = enhanceSelectors(rules[i].selectors);
 
-                copyRule.declarations = leaveOnlyColorDeclarations(rules[i].declarations);
+logRequired = (i===LogRuleNr);
+
+            rule = clone(rules[i]);
+            if (rule.type === 'media') {
+                rule.rules = leaveOnlyColorRules(rule.rules); //recursive
+            } else if (rule.type === 'declaration') {
+logThis('Rule selectors', rule.selectors);
+                rule.selectors = enhanceSelectors(rule.selectors);
+                rule.declarations = leaveOnlyColorDeclarations(rule.declarations);
             }
-            copyRules.push(copyRule);
+
+            if (rule.type === 'media' || rule.type === 'declaration') {
+                copyRules.push(rule);
+            }
         }
         return copyRules;
     }
