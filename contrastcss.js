@@ -7,13 +7,16 @@ module.exports = function (css, options) {
     parsed = parseCss(css);
     //colorRules = [];
     rules = parsed.stylesheet.rules;
-//console.log(rules);
 console.log(options);
-//console.log('-------------');
+console.log('-------------');
+
+var LogRuleNr = 0;
+var logThis = false;
 
     var bodyprefix = options.bodyprefix;
     var colorsToTopColor = options.colorsToTopColor[0];
     var colorsToBottomColor = options.colorsToBottomColor[0];
+
 
     function compareColors(left, right) {
 
@@ -83,51 +86,12 @@ console.log(options);
         return selectors;
     }
 
-    function leaveOnlyColorRules(rules) {
-        var copyRules = [];
-        var copyRule = {};
-
-        for (var i = 0; i < rules.length; ++i) {
-            if (rules[i].type === 'media') {
-                copyRule = {};
-                copyRule.type = 'media';
-                copyRule.media = rules[i].media;
-                copyRule.rules = leaveOnlyColorRules(rules[i].rules);
-            } else {
-                copyRule = {};
-                copyRule.type = 'rule';
-                copyRule.selectors = enhanceSelectors(rules[i].selectors);
-                copyRule.declarations = leaveOnlyColorDeclarations(rules[i].declarations);
-            }
-            copyRules.push(copyRule);
-        }
-        return copyRules;
-    }
-
-    function leaveOnlyColorDeclarations(declarations) {
-        var copyDeclarations = [], declaration;
-        for (var i = 0; i < declarations.length; ++i) {
-            declaration = declarations[i];
-console.log('Declaration: ', declaration);
-            if (declaration.property.indexOf("color") !== -1) {
-                if (isTopColor(declaration.value)) {
-                    declaration.value = options.topColor;
-                    copyDeclarations.push(declaration);
-                } else if (isBottomColor(declaration.value)) {
-                    declaration.value = options.bottomColor;
-                    copyDeclarations.push(declaration);
-                }
-            }
-        }
-        return copyDeclarations;
-    }
-
     function isTopColor(color) {
-        return isColorInList(color, colorsToTopColor);
+        return isColorInList(color, options.colorsToTopColor);
     }
 
     function isBottomColor(color) {
-        return isColorInList(color, colorsToBottomColor);
+        return isColorInList(color, options.colorsToBottomColor);
     }
 
     function isColorInList(color, listOfColors) {
@@ -137,6 +101,62 @@ console.log('Declaration: ', declaration);
             }
         }
         return false;
+    }
+
+    function leaveOnlyColorDeclarations(declarations) {
+        var copyDeclarations = [], declaration;
+        for (var i = 0; i < declarations.length; ++i) {
+            declaration = declarations[i];
+if (logThis) {
+    console.log('Declaration: ', declaration);
+}
+            if (['color', 'background', 'font-color', 'border-color'].indexOf(declaration.property) !== -1) {
+                if (isTopColor(declaration.value)) {
+if (logThis) {
+    console.log('topcolor: ', declaration.value);
+}
+                    declaration.value = options.topColor;
+                    copyDeclarations.push(declaration);
+
+                } else if (isTopColor(declaration.value)) {
+if (logThis) {
+    console.log('bottomcolor: ', declaration.value);
+}
+                    declaration.value = options.bottomColor;
+                    copyDeclarations.push(declaration);
+                }
+            }
+        }
+if (logThis) {
+    console.log('Altered Declaration: ', copyDeclarations);
+}
+        return copyDeclarations;
+    }
+
+    function leaveOnlyColorRules(rules) {
+        var copyRules = [];
+        var copyRule = {};
+
+        for (var i = 0; i < rules.length; ++i) {
+logThis = (i===LogRuleNr);
+if (logThis) {
+    console.log('Rule selectors: ', rules[i].selectors);
+}
+            if (rules[i].type === 'media') {
+                copyRule = {};
+                copyRule.type = 'media';
+                copyRule.media = rules[i].media;
+                copyRule.rules = leaveOnlyColorRules(rules[i].rules); //recursive
+            } else {
+                copyRule = {};
+                copyRule.type = 'rule';
+                copyRule.selectors = enhanceSelectors(rules[i].selectors);
+
+                copyRule.declarations = leaveOnlyColorDeclarations(rules[i].declarations);
+            }
+            copyRules.push(copyRule);
+        }
+        return copyRules;
     }
 
     parsed.stylesheet.rules = leaveOnlyColorRules(rules);
