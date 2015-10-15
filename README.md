@@ -1,9 +1,10 @@
 ### What is this for?
 Postprocessing CSS file to create high-contrast style addon. For accessibility.
 Not Nearly Finished. Sorry. 
-Todo: Make it work under postcss
-      convert "border: 1px solid #111111" into "border-color: #000"
-	  figure out how to drop gradients and boxshadows etc.
+Todo: 
+- Make it work under postcss
+- convert "border: 1px solid #111111" into "border-color: #000"
+- figure out how to drop gradients and boxshadows etc.
 
 ### Usage
 - Install it: `npm install`
@@ -11,7 +12,7 @@ Todo: Make it work under postcss
   This generates a file with only the css rules about color, prefixed with a body-class.
 
 ### Notes
-- Configure your colors with a hightcontrast replacement. 
+Configure your colors with a hightcontrast replacement. 
     contrastcss: {
         blackonwhite: {
             options: {
