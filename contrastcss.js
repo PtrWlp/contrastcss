@@ -3,29 +3,20 @@ var stringifyCss = require('css-stringify');
 
 module.exports = function (css, options) {
 
-var LogRuleNr = 1;
-var logRequired = false;
-function logThis(label, log, always) {
-    if (logRequired || always) {
-        console.log(label + ": ", log);
-    }
-}
-
     var parsed = parseCss(css);
     var rules = parsed.stylesheet.rules;
 
-logThis('Selected rule for logging', LogRuleNr, true);
-logThis('options', options, true);
-logThis('----------', '', true);
-logThis('parsed', parsed, true);
-logThis('----------', '', true);
-
-
     var bodyprefix = options.bodyprefix;
     var colorsToTopColor = options.colorsToTopColor[0];
-    var colorsToBottomColor = options.colorsToBottomColor[0];
+    var colorsToDownColor = options.colorsToDownColor[0];
 
     var unmatchedColors = [];
+
+    function addUnmatchedColor(color) {
+        if (unmatchedColors.indexOf(color) === -1) {
+          unmatchedColors.push(color);
+        }
+    }
 
     function clone(source) {
         var destination = {}
@@ -111,8 +102,8 @@ logThis('----------', '', true);
         return isColorInList(color, options.colorsToTopColor);
     }
 
-    function isBottomColor(color) {
-        return isColorInList(color, options.colorsToBottomColor);
+    function isDownColor(color) {
+        return isColorInList(color, options.colorsToDownColor);
     }
 
     function isColorInList(color, listOfColors) {
@@ -133,39 +124,54 @@ logThis('----------', '', true);
                 if (isTopColor(declaration.value)) {
                     declaration.value = options.topColor;
                     copyDeclarations.push(declaration);
-                } else if (isBottomColor(declaration.value)) {
-                    declaration.value = options.bottomColor;
+                } else if (isDownColor(declaration.value)) {
+                    declaration.value = options.downColor;
                     copyDeclarations.push(declaration);
+                } else {
+                    // unknown colour encounterd
+                    addUnmatchedColor(declaration.value);
                 }
             }
         }
-logThis('Altered Declaration', copyDeclarations);
         return copyDeclarations;
     }
 
     function leaveOnlyColorRules(rules) {
         var copyRules = [], rule;
+        var rulesObj = {}, mediaRulesObj = {};
+        var isThisChanged = false;
 
         for (var i = 0; i < rules.length; ++i) {
 
-logRequired = (i===LogRuleNr);
-
             rule = clone(rules[i]);
             if (rule.type === 'media') {
-                rule.rules = leaveOnlyColorRules(rule.rules); //recursive
-            } else if (rule.type === 'declaration') {
-logThis('Rule selectors', rule.selectors);
+                mediaRulesObj = leaveOnlyColorRules(rule.rules); //recursive
+                if (mediaRulesObj.isChanged) {
+                    isThisChanged = true;
+                    rule.rules = mediaRulesObj.rules;
+                }
+            } else if (rule.type === 'rule') {
                 rule.selectors = enhanceSelectors(rule.selectors);
                 rule.declarations = leaveOnlyColorDeclarations(rule.declarations);
             }
 
-            if (rule.type === 'media' || rule.type === 'declaration') {
+            if (['media', 'rule'].indexOf(rule.type) != -1) {
                 copyRules.push(rule);
             }
         }
-        return copyRules;
+        return {isChanged : isThisChanged,
+                rules : copyRules
+                };
     }
 
-    parsed.stylesheet.rules = leaveOnlyColorRules(rules);
+    rulesObj = leaveOnlyColorRules(rules);
+
+    var commentRule = {};
+    commentRule.type = 'comment';
+    commentRule.comment = ' Colors encountered without mapping: ' + unmatchedColors.join(' ');
+    rulesObj.rules.push(commentRule);
+
+    parsed.stylesheet.rules = rulesObj.rules;
+
     return stringifyCss(parsed);
 };
