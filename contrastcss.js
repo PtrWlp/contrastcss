@@ -281,11 +281,6 @@ module.exports = function (css, options) {
             isThisChanged = false;
             rule = clone(rules[i]);
 
-            if (isRecursive !== true) {
-                logRequired = (i===LogRuleNr || LogRuleNr===-1);
-            }
-
-
             if (rule.type === 'media') {
                 mediaRulesObj = leaveOnlyColorRules(rule.rules, true); //recursive
                 if (mediaRulesObj.isChanged) {
