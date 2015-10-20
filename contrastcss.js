@@ -3,14 +3,6 @@ var stringifyCss = require('css-stringify');
 
 module.exports = function (css, options) {
 
-var LogRuleNr = null;
-var logRequired = false;
-function logThis(label, log, always) {
-    if (logRequired || always) {
-        console.log(label + ": ", log);
-    }
-}
-
     function unifyColor(color){
         function componentToHex(c) {
             if (!c && c !== 0) {
@@ -158,8 +150,8 @@ function logThis(label, log, always) {
         for (var i = 0; i < selectors.length; ++i) {
             if (selectors[i] === 'html') {
                 selectors[i] = selectors[i] + ' .' + bodyprefix; // all classes within html
-            } else if (selectors[i] === 'body') {
-                selectors[i] = selectors[i] + '.' + bodyprefix; // all body having class
+            } else if (selectors[i] === 'body' || selectors[i] === '.g-root') {
+                selectors[i] = selectors[i] + '.' + bodyprefix; // all body having class. Freak adds g-root to body
             } else {
                 selectors[i] = '.' + bodyprefix + ' ' + selectors[i]; // all other, under body tag
             }
@@ -234,7 +226,6 @@ function logThis(label, log, always) {
                 if (isolatedColor !== null) {
 
                     colorMappedTo = colorMapped(isolatedColor);
-logThis('mapped color', declaration.value + ' ' + colorMappedTo, true );
                     if (colorMappedTo === 'unknown') {
                         // unknown colour encounterd
                         // if (luminosity(unifyColor(declaration.value)) <= 112) {
@@ -245,7 +236,7 @@ logThis('mapped color', declaration.value + ' ' + colorMappedTo, true );
                         //copyDeclarations.push(declaration);
                         //isThisChanged = true;
                         addUnmatchedColor(declaration.value);
-                        break; // Abandon processing this iteration
+                        continue; // Abandon processing this iteration
                     }
 
                     // here, the colorMappedTo is either top or down
@@ -294,7 +285,6 @@ logThis('mapped color', declaration.value + ' ' + colorMappedTo, true );
                 logRequired = (i===LogRuleNr || LogRuleNr===-1);
             }
 
-logThis('Rule', rule);
 
             if (rule.type === 'media') {
                 mediaRulesObj = leaveOnlyColorRules(rule.rules, true); //recursive
@@ -331,11 +321,8 @@ logThis('Rule', rule);
 
     var cssOutput = stringifyCss(parsed, {compress: true});
     // Add extra lines for readability
-    cssOutput = cssOutput.replace(/(})/gm,'}\n'); // '}'' is the end of a line
+    cssOutput = cssOutput.replace(/(})/gm,'}\n'); // '}' is the end of a line
     cssOutput = cssOutput.replace(/(;})/gm,'}\n');  // ';}' semicolon needless
-//    console.log(cssOutput);
-
-    console.log(unmatchedColors.length + ' Colors encountered without mapping: ' + unmatchedColors.join(' '));
 
     var commentLine =  '/* These are highcontrast additions for duotone:' + options.topColor + "/" + options.downColor + ' */\n';
 
