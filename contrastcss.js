@@ -3,6 +3,14 @@ var stringifyCss = require('css-stringify');
 
 module.exports = function (css, options) {
 
+var LogRuleNr = 10000000;
+var logRequired = false;
+function logThis(label, log, always) {
+    if (logRequired || always) {
+        console.log(label + ": ", log);
+    }
+}
+
     function unifyColor(color){
         function componentToHex(c) {
             if (!c && c !== 0) {
@@ -121,7 +129,7 @@ module.exports = function (css, options) {
 
             var val=src[key];
 
-            if(val && typeof(val)=='object') {
+            if(val && typeof(val) === 'object') {
                 if     (val instanceof Boolean) { val=Boolean(val);        }
                 else if(val instanceof Number ) { val=Number (val);        }
                 else if(val instanceof String ) { val=String (val);        }
@@ -147,6 +155,13 @@ module.exports = function (css, options) {
     }
 
     function enhanceSelectors(selectors) {
+        // removing from array? Walk backwards
+        for (var j = selectors.length - 1; j >= 0; j--) {
+            if (options.selectorsUntouched && (options.selectorsUntouched === selectors[j] || options.selectorsUntouched.indexOf(selectors[j]) !== -1)) {
+                selectors.splice(j, 1);
+            }
+        }
+
         for (var i = 0; i < selectors.length; ++i) {
             if (selectors[i] === 'html') {
                 selectors[i] = selectors[i] + ' .' + bodyprefix; // all classes within html
@@ -217,6 +232,8 @@ module.exports = function (css, options) {
         for (var i = 0; i < declarations.length; ++i) {
             declaration = clone(declarations[i]);
 
+logThis('declaration', declaration);
+
             if (doesPropertyHaveColor(declaration.property) &&
                 ['transparent', 'none', 'inherit', 'initial'].indexOf(declaration.value.toLowerCase()) === -1 &&
                 declaration.value !== '0') {
@@ -228,13 +245,19 @@ module.exports = function (css, options) {
                     colorMappedTo = colorMapped(isolatedColor);
                     if (colorMappedTo === 'unknown') {
                         // unknown colour encounterd
-                        // if (luminosity(unifyColor(declaration.value)) <= 112) {
-                        //     declaration.value = options.downColor;
-                        //  } else {
-                        //     declaration.value = options.topColor;
-                        //  }
-                        //copyDeclarations.push(declaration);
-                        //isThisChanged = true;
+                        if (options.autoIndexColorsByLuminosity) {
+                            var luminosityBreakpoint = 112;
+                            if (options.autoIndexLuminosityBreakpoint) {
+                                luminosityBreakpoint = options.autoIndexLuminosityBreakpoint;
+                            }
+                            if (luminosity(unifyColor(declaration.value)) <= options.autoIndexLuminosityBreakpoint) {
+                                declaration.value = options.downColor;
+                             } else {
+                                declaration.value = options.topColor;
+                             }
+                            copyDeclarations.push(declaration);
+                            isThisChanged = true;
+                        }
                         addUnmatchedColor(declaration.value);
                         continue; // Abandon processing this iteration
                     }
@@ -281,6 +304,10 @@ module.exports = function (css, options) {
             isThisChanged = false;
             rule = clone(rules[i]);
 
+            if (isRecursive !== true) {
+                logRequired = (i===LogRuleNr || LogRuleNr===-1);
+            }
+logThis('rule', rule);
             if (rule.type === 'media') {
                 mediaRulesObj = leaveOnlyColorRules(rule.rules, true); //recursive
                 if (mediaRulesObj.isChanged) {
@@ -290,9 +317,12 @@ module.exports = function (css, options) {
             } else if (rule.type === 'rule') {
                 declarationsObj = leaveOnlyColorDeclarations(rule.declarations);
                 if (declarationsObj.isChanged) {
-                    rule.selectors = enhanceSelectors(rule.selectors);
-                    rule.declarations = declarationsObj.declarations;
-                    isThisChanged = true;
+                    var enhancedSelectors = enhanceSelectors(rule.selectors);
+                    if (enhancedSelectors.length !== 0) {
+                        rule.selectors = enhancedSelectors;
+                        rule.declarations = declarationsObj.declarations;
+                        isThisChanged = true;
+                    }
                 }
             }
 
@@ -318,6 +348,9 @@ module.exports = function (css, options) {
     // Add extra lines for readability
     cssOutput = cssOutput.replace(/(})/gm,'}\n'); // '}' is the end of a line
     cssOutput = cssOutput.replace(/(;})/gm,'}\n');  // ';}' semicolon needless
+//    console.log(cssOutput);
+
+    console.log(unmatchedColors.length + ' Colors encountered without mapping: ' + unmatchedColors.join(' '));
 
     var commentLine =  '/* These are highcontrast additions for duotone:' + options.topColor + "/" + options.downColor + ' */\n';
 
