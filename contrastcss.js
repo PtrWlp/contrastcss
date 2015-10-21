@@ -103,12 +103,24 @@ module.exports = function (css, options) {
     var unifiedDownColor = unifyColor(options.downColor);
 
     var unmatchedColors = [];
+    var unmatchedColorsTop = [];
+    var unmatchedColorsDown = [];
 
-    function addUnmatchedColor(color) {
+    function addUnmatchedColor(color, mappedTo) {
         var unified = unifyColor(color);
 
-        if (unmatchedColors.indexOf(unified) === -1) {
-          unmatchedColors.push(unified);
+        if (mappedTo === 'top') {
+            if (unmatchedColorsTop.indexOf(unified) === -1) {
+              unmatchedColorsTop.push(unified);
+            }
+        } else if (mappedTo === 'down') {
+            if (unmatchedColorsDown.indexOf(unified) === -1) {
+              unmatchedColorsDown.push(unified);
+            }
+        } else {
+            if (unmatchedColors.indexOf(unified) === -1) {
+              unmatchedColors.push(unified);
+            }
         }
     }
 
@@ -236,45 +248,50 @@ module.exports = function (css, options) {
                     if (colorMappedTo === 'unknown') {
                         // unknown colour encounterd
                         if (options.autoIndexColorsByLuminosity) {
-                            var luminosityBreakpoint = 112;
+                            var luminosityBreakpoint = 100;
                             if (options.autoIndexLuminosityBreakpoint) {
                                 luminosityBreakpoint = options.autoIndexLuminosityBreakpoint;
                             }
                             if (luminosity(unifyColor(declaration.value)) <= options.autoIndexLuminosityBreakpoint) {
+                                addUnmatchedColor(declaration.value, 'down');
                                 declaration.value = options.downColor;
                              } else {
+                                addUnmatchedColor(declaration.value, 'top');
                                 declaration.value = options.topColor;
                              }
                             copyDeclarations.push(declaration);
                             isThisChanged = true;
-                        }
-                        addUnmatchedColor(declaration.value);
-                        continue; // Abandon processing this iteration
-                    }
-
-                    // here, the colorMappedTo is either top or down
-                    if (colorMappedTo === 'top') {
-                        alternativeColor = options.topColor;
-                    } else {
-                        alternativeColor = options.downColor;
-                    }
-
-                    // Selector that holds inverted colors should be coded here TODO
-
-                    if (isolatedColor !== declaration.value) {
-                        // Complex color, maybe shorthand or linear-gradient
-                        if (declaration.value.indexOf('linear-gradient') !== -1) {
-                            declaration.value = 'none';
                         } else {
-                            var re = new RegExp(isolatedColor, 'i');
-                            declaration.value = declaration.value.replace(re, alternativeColor);
+                            addUnmatchedColor(declaration.value, 'unknown');
                         }
-                    } else {
-                        declaration.value = alternativeColor;
-                    }
 
-                    copyDeclarations.push(declaration);
-                    isThisChanged = true;
+                    } else { // top or down color
+
+                        // here, the colorMappedTo is either top or down
+                        if (colorMappedTo === 'top') {
+                            alternativeColor = options.topColor;
+                        } else {
+                            alternativeColor = options.downColor;
+                        }
+
+                        // Selector that holds inverted colors should be coded here TODO
+
+                        if (isolatedColor !== declaration.value) {
+                            // Complex color, maybe shorthand or linear-gradient
+                            if (declaration.value.indexOf('linear-gradient') !== -1) {
+                                declaration.value = 'none';
+                            } else {
+                                var re = new RegExp(isolatedColor, 'i');
+                                declaration.value = declaration.value.replace(re, alternativeColor);
+                            }
+                        } else {
+                            declaration.value = alternativeColor;
+                        }
+
+                        copyDeclarations.push(declaration);
+                        isThisChanged = true;
+
+                    }
 
                 }
             }
@@ -335,8 +352,12 @@ module.exports = function (css, options) {
     cssOutput = cssOutput.replace(/(})/gm,'}\n'); // '}' is the end of a line
     cssOutput = cssOutput.replace(/(;})/gm,'}');  // ';}' semicolon needless
 
-    console.log(unmatchedColors.length + ' Colors encountered without mapping: ' + unmatchedColors.join(' '));
-
+    if (options.autoIndexColorsByLuminosity) {
+        console.log(unmatchedColorsTop.length + ' Colors auto-casted to TopColor ' + unifiedTopColor + ':\n' + unmatchedColorsTop.join(' '));
+        console.log(unmatchedColorsDown.length + ' Colors auto-casted to DownColor ' + unifiedDownColor + ':\n' + unmatchedColorsDown.join(' '));
+    } else {
+        console.log(unmatchedColors.length + ' Colors encountered without mapping: \n' + unmatchedColors.join(' '));
+    }
     var commentLine =  '/* These are highcontrast additions for duotone:' + options.topColor + "/" + options.downColor + ' */\n';
 
     return commentLine + cssOutput;
