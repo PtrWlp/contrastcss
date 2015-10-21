@@ -3,14 +3,6 @@ var stringifyCss = require('css-stringify');
 
 module.exports = function (css, options) {
 
-var LogRuleNr = 10000000;
-var logRequired = false;
-function logThis(label, log, always) {
-    if (logRequired || always) {
-        console.log(label + ": ", log);
-    }
-}
-
     function unifyColor(color){
         function componentToHex(c) {
             if (!c && c !== 0) {
@@ -232,8 +224,6 @@ function logThis(label, log, always) {
         for (var i = 0; i < declarations.length; ++i) {
             declaration = clone(declarations[i]);
 
-logThis('declaration', declaration);
-
             if (doesPropertyHaveColor(declaration.property) &&
                 ['transparent', 'none', 'inherit', 'initial'].indexOf(declaration.value.toLowerCase()) === -1 &&
                 declaration.value !== '0') {
@@ -294,7 +284,7 @@ logThis('declaration', declaration);
                 };
     }
 
-    function leaveOnlyColorRules(rules, isRecursive) {
+    function leaveOnlyColorRules(rules) {
         var copyRules = [], rule;
         var rulesObj = {}, mediaRulesObj = {}, declarationsObj = {};
         var isThisChanged = false;
@@ -304,12 +294,8 @@ logThis('declaration', declaration);
             isThisChanged = false;
             rule = clone(rules[i]);
 
-            if (isRecursive !== true) {
-                logRequired = (i===LogRuleNr || LogRuleNr===-1);
-            }
-logThis('rule', rule);
             if (rule.type === 'media') {
-                mediaRulesObj = leaveOnlyColorRules(rule.rules, true); //recursive
+                mediaRulesObj = leaveOnlyColorRules(rule.rules); //recursive
                 if (mediaRulesObj.isChanged) {
                     isThisChanged = true;
                     rule.rules = mediaRulesObj.rules;
@@ -347,8 +333,7 @@ logThis('rule', rule);
     var cssOutput = stringifyCss(parsed, {compress: true});
     // Add extra lines for readability
     cssOutput = cssOutput.replace(/(})/gm,'}\n'); // '}' is the end of a line
-    cssOutput = cssOutput.replace(/(;})/gm,'}\n');  // ';}' semicolon needless
-//    console.log(cssOutput);
+    cssOutput = cssOutput.replace(/(;})/gm,'}');  // ';}' semicolon needless
 
     console.log(unmatchedColors.length + ' Colors encountered without mapping: ' + unmatchedColors.join(' '));
 
