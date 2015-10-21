@@ -248,7 +248,7 @@ module.exports = function (css, options) {
                     if (colorMappedTo === 'unknown') {
                         // unknown colour encounterd
                         if (options.autoIndexColorsByLuminosity) {
-                            var luminosityBreakpoint = 100;
+                            var luminosityBreakpoint = 112;
                             if (options.autoIndexLuminosityBreakpoint) {
                                 luminosityBreakpoint = options.autoIndexLuminosityBreakpoint;
                             }
