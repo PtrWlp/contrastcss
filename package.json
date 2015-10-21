@@ -14,7 +14,7 @@
   "author": {
     "name": "Peter Welp"
   },
-  "version": "0.0.1",
+  "version": "0.0.x",
   "main": "contrastcss",
   "dependencies": {
     "css-parse": "*",
